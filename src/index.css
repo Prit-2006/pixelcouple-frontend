@@ -1,0 +1,350 @@
+/* PixelCouple — index.css
+   Dark pixel-art theme, mobile-first, premium feel */
+
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DM+Sans:wght@400;500;600&display=swap");
+
+/* ─── Tokens ─────────────────────────────────────────────────────────────── */
+:root {
+  --bg:        #0e0e14;
+  --surface:   #16161f;
+  --surface2:  #1e1e2c;
+  --border:    #2a2a3d;
+  --accent:    #d46ef3;
+  --accent2:   #7c5cbf;
+  --text:      #e8e8f0;
+  --text-muted:#7a7a9a;
+  --green:     #4ade80;
+  --red:       #f87171;
+  --radius:    18px;
+  --radius-sm: 10px;
+  font-size: 16px;
+}
+
+/* ─── Reset ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;        /* kill elastic scroll */
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "DM Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── App Shell ──────────────────────────────────────────────────────────── */
+.main-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ─── Connection Badge ───────────────────────────────────────────────────── */
+.conn-badge {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  z-index: 999;
+  letter-spacing: 0.02em;
+}
+.conn-badge--reconnecting {
+  background: #3b2c00;
+  color: #fbbf24;
+  border: 1px solid #78350f;
+}
+.conn-badge--offline {
+  background: #2c0000;
+  color: var(--red);
+  border: 1px solid #7f1d1d;
+}
+
+/* ─── Tab Bar ────────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+  padding-top: env(safe-area-inset-top, 0px);
+  flex-shrink: 0;
+}
+.tab-btn {
+  flex: 1;
+  padding: 16px 0 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+  transition: color 0.18s;
+  position: relative;
+}
+.tab-btn--active {
+  color: var(--accent);
+}
+.tab-btn--active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+
+/* ─── Tab Content ────────────────────────────────────────────────────────── */
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─── Role Screen ────────────────────────────────────────────────────────── */
+.role-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 50% 30%, #1a0d2e 0%, var(--bg) 70%);
+}
+.role-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 24px;
+  text-align: center;
+}
+.pixel-heart {
+  font-size: 2.8rem;
+  animation: heartbeat 1.4s ease-in-out infinite;
+}
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14%       { transform: scale(1.18); }
+  28%       { transform: scale(1); }
+  42%       { transform: scale(1.12); }
+}
+.app-title {
+  font-family: "Press Start 2P", monospace;
+  font-size: 1.35rem;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+  text-shadow: 0 0 24px #d46ef355;
+}
+.role-sub {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 4px;
+}
+.role-buttons {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+}
+.role-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 28px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  min-width: 130px;
+}
+.role-btn:active { transform: scale(0.95); }
+.role-btn:hover  { border-color: var(--accent2); background: #1f1930; }
+.role-emoji      { font-size: 2.2rem; }
+.role-note {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+/* ─── Partner View ───────────────────────────────────────────────────────── */
+.partner-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 32px 24px 40px;
+}
+.partner-name {
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.gif-frame {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  box-shadow: 0 0 40px #d46ef318;
+}
+.partner-gif {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.gif-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, #d46ef312, transparent 70%);
+  pointer-events: none;
+}
+.gif-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 4rem;
+}
+.status-pill {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 9px 22px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+.meta-sep { opacity: 0.4; }
+
+.partner-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 18px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.pulse-dot {
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(0.7); }
+}
+
+/* ─── Controller ─────────────────────────────────────────────────────────── */
+.controller {
+  padding: 24px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.controller-title {
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.controller-sub {
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+.controller-sub strong { color: var(--text); }
+
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.status-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+  overflow: hidden;
+}
+.status-btn:active  { transform: scale(0.94); }
+.status-btn:hover   { border-color: var(--accent); }
+
+.status-btn--active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface2));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.status-btn-emoji { font-size: 2rem; line-height: 1; }
+.status-btn-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.active-ring {
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius);
+  border: 2px solid var(--accent);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.sending-text {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+/* ─── Safe-area bottom padding for iPhone home indicator ─────────────────── */
+.tab-content {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}

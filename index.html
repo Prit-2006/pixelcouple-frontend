@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- ─── PWA / iOS Home Screen Meta Tags ─────────────────────────────── -->
+
+    <!-- Hides Safari's address bar when launched from home screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+
+    <!-- Status bar style: black-translucent blends into dark theme -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- Name shown under the icon on the home screen -->
+    <meta name="apple-mobile-web-app-title" content="PixelCouple" />
+
+    <!-- Standard mobile viewport — disables user zoom -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+
+    <!-- Web App Manifest (for Android / standards-compliant PWA) -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Theme colour for browser chrome -->
+    <meta name="theme-color" content="#0e0e14" />
+
+    <!-- iOS app icons — generate these at https://progressier.com/pwa-icons-generator -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-120.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+
+    <title>PixelCouple</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
