@@ -1,6 +1,6 @@
 /**
  * PixelCouple — App.jsx
- * Features: Status Grid, Mood Note, Daily Streak
+ * Features: Status Grid, Mood Note, Daily Streak, Virtual Flowers 🌸
  */
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -21,6 +21,8 @@ const STATUSES = [
   { key: "potty", label: "On the Pot", emoji: "🚽", location: "Bathroom", gif_url: "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif", color: "#8B4513" },
 ];
 
+const FLOWER_EMOJIS = ["🌸", "🌹", "🌺", "🌻", "💐", "🌷", "✿", "🌼"];
+
 function timeAgo(isoString) {
   if (!isoString) return "just now";
   const diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
@@ -29,6 +31,48 @@ function timeAgo(isoString) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
+}
+
+// ─── Flower Rain Overlay ──────────────────────────────────────────────────────
+function FlowerRain({ senderGender, onDone }) {
+  const message = senderGender === "user_1"
+    ? "He sent you flowers! 💐"
+    : "She sent you flowers! 💐";
+
+  // Generate 30 random petals
+  const petals = Array.from({ length: 30 }, (_, i) => ({
+    id: i,
+    emoji: FLOWER_EMOJIS[Math.floor(Math.random() * FLOWER_EMOJIS.length)],
+    left: Math.random() * 100,
+    delay: Math.random() * 2,
+    size: 1.2 + Math.random() * 1.6,
+    duration: 2.5 + Math.random() * 2,
+  }));
+
+  useEffect(() => {
+    const timer = setTimeout(onDone, 4500);
+    return () => clearTimeout(timer);
+  }, [onDone]);
+
+  return (
+    <div className="flower-overlay" onClick={onDone}>
+      {petals.map((p) => (
+        <div
+          key={p.id}
+          className="flower-petal"
+          style={{
+            left: `${p.left}%`,
+            fontSize: `${p.size}rem`,
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration}s`,
+          }}
+        >
+          {p.emoji}
+        </div>
+      ))}
+      <div className="flower-message">{message}</div>
+    </div>
+  );
 }
 
 // ─── Streak Banner ────────────────────────────────────────────────────────────
@@ -71,12 +115,20 @@ function RoleScreen({ onSelect }) {
 }
 
 // ─── Partner View ─────────────────────────────────────────────────────────────
-function PartnerView({ partnerData, streak }) {
+function PartnerView({ partnerData, streak, onSendFlowers, myId }) {
   const [tick, setTick] = useState(0);
+  const [flowerSent, setFlowerSent] = useState(false);
+
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 30_000);
     return () => clearInterval(id);
   }, []);
+
+  const handleSendFlowers = () => {
+    onSendFlowers();
+    setFlowerSent(true);
+    setTimeout(() => setFlowerSent(false), 3000);
+  };
 
   if (!partnerData) {
     return (
@@ -111,6 +163,15 @@ function PartnerView({ partnerData, streak }) {
           <span className="mood-text">"{partnerData.mood_note}"</span>
         </div>
       ) : null}
+
+      {/* Send Flowers Button */}
+      <button
+        className={`flower-btn ${flowerSent ? "flower-btn--sent" : ""}`}
+        onClick={handleSendFlowers}
+        disabled={flowerSent}
+      >
+        {flowerSent ? "Flowers sent! 💐" : "Send Flowers 🌸"}
+      </button>
     </div>
   );
 }
@@ -154,7 +215,7 @@ function MyController({ myData, onUpdate, onMoodSend, isSending, streak }) {
         })}
       </div>
 
-      {/* Mood Note Section */}
+      {/* Mood Note */}
       <div className="mood-section">
         <p className="mood-label">💭 Mood Note</p>
         <p className="mood-hint">Let them know how you're feeling</p>
@@ -210,6 +271,8 @@ function MainApp({ myId }) {
   const [connected, setConnected] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  // flower state: null = no animation, otherwise = { senderGender }
+  const [flowerAnim, setFlowerAnim] = useState(null);
   const socketRef = useRef(null);
 
   const fetchLatestState = useCallback(async () => {
@@ -236,15 +299,23 @@ function MainApp({ myId }) {
       setConnected(true);
       setReconnecting(false);
       fetchLatestState();
-      // Tell server this user is active today (for streak)
       socket.emit("user_active", { userId: myId });
     });
 
     socket.on("disconnect", () => { setConnected(false); setReconnecting(true); });
     socket.on("connect_error", () => { setReconnecting(true); });
+
     socket.on("state_update", (newState) => {
       setAppState(newState);
       localStorage.setItem("pixelcouple_state", JSON.stringify(newState));
+    });
+
+    // Receive flowers from partner
+    socket.on("send_flowers", (payload) => {
+      // Only show animation if WE are the recipient
+      if (payload.toUserId === myId) {
+        setFlowerAnim({ senderGender: payload.fromUserId });
+      }
     });
 
     fetchLatestState();
@@ -283,12 +354,28 @@ function MainApp({ myId }) {
     });
   }, [myId]);
 
+  const handleSendFlowers = useCallback(() => {
+    if (!socketRef.current) return;
+    socketRef.current.emit("send_flowers", {
+      fromUserId: myId,
+      toUserId: partnerId,
+    });
+  }, [myId, partnerId]);
+
   const myData = appState?.[myId] || null;
   const partnerData = appState?.[partnerId] || null;
   const streak = appState?.streak || { count: 0 };
 
   return (
     <div className="main-app">
+      {/* Flower rain overlay — shows on top of everything */}
+      {flowerAnim && (
+        <FlowerRain
+          senderGender={flowerAnim.senderGender}
+          onDone={() => setFlowerAnim(null)}
+        />
+      )}
+
       <ConnectionBadge connected={connected} reconnecting={reconnecting} />
       <nav className="tab-bar">
         <button className={`tab-btn ${tab === "partner" ? "tab-btn--active" : ""}`} onClick={() => setTab("partner")}>
@@ -300,9 +387,20 @@ function MainApp({ myId }) {
       </nav>
       <div className="tab-content">
         {tab === "partner" ? (
-          <PartnerView partnerData={partnerData} streak={streak} />
+          <PartnerView
+            partnerData={partnerData}
+            streak={streak}
+            onSendFlowers={handleSendFlowers}
+            myId={myId}
+          />
         ) : (
-          <MyController myData={myData} onUpdate={handleUpdate} onMoodSend={handleMoodSend} isSending={isSending} streak={streak} />
+          <MyController
+            myData={myData}
+            onUpdate={handleUpdate}
+            onMoodSend={handleMoodSend}
+            isSending={isSending}
+            streak={streak}
+          />
         )}
       </div>
     </div>

@@ -449,3 +449,66 @@ button {
   color: var(--text-muted);
   font-style: italic;
 }
+
+/* ─── Flower Rain Overlay ────────────────────────────────────────────────────── */
+.flower-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: all;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.flower-petal {
+  position: absolute;
+  top: -60px;
+  animation: petalFall linear forwards;
+  user-select: none;
+  pointer-events: none;
+}
+@keyframes petalFall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+.flower-message {
+  background: linear-gradient(135deg, #ff6fb0, #ff9de2);
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 18px 28px;
+  border-radius: 99px;
+  box-shadow: 0 8px 32px #ff6fb055;
+  text-align: center;
+  animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  z-index: 1;
+}
+@keyframes popIn {
+  0%   { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* ─── Send Flowers Button ────────────────────────────────────────────────────── */
+.flower-btn {
+  margin-top: 8px;
+  width: 100%;
+  max-width: 280px;
+  padding: 14px 0;
+  border-radius: 99px;
+  font-size: 1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ff6fb0, #ff9de2);
+  color: #fff;
+  box-shadow: 0 4px 18px #ff6fb044;
+  transition: transform 0.12s, box-shadow 0.12s, background 0.2s;
+  letter-spacing: 0.02em;
+}
+.flower-btn:active { transform: scale(0.95); }
+.flower-btn:disabled { opacity: 0.7; }
+.flower-btn--sent {
+  background: linear-gradient(135deg, #10B981, #34d399);
+  box-shadow: 0 4px 18px #10b98144;
+}
