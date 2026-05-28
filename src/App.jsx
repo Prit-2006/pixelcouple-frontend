@@ -121,9 +121,11 @@ function StreakBanner({ streak }) {
 function CanvasBoard({ myId, appState, onSendCanvas, onClearCanvas }) {
   const canvasRef = useRef(null);
   const isDrawing = useRef(false);
+  const lastPos = useRef(null);
   const [color, setColor] = useState("#e8e8f0");
   const [brushSize, setBrushSize] = useState(4);
-  const [viewMode, setViewMode] = useState("mine"); // "mine" or "partner"
+  const [viewMode, setViewMode] = useState("mine");
+  const [sendStatus, setSendStatus] = useState("idle"); // idle | sending | sent
   const partnerId = myId === "user_1" ? "user_2" : "user_1";
   const partnerName = myId === "user_1" ? "Girlfriend" : "Boyfriend";
 
@@ -137,7 +139,7 @@ function CanvasBoard({ myId, appState, onSendCanvas, onClearCanvas }) {
     const savedCanvas = appState?.[myId]?.canvas;
     if (savedCanvas) {
       const img = new Image();
-      img.onload = () => ctx.drawImage(img, 0, 0);
+      img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       img.src = savedCanvas;
     }
   }, []);
@@ -156,10 +158,13 @@ function CanvasBoard({ myId, appState, onSendCanvas, onClearCanvas }) {
     e.preventDefault();
     isDrawing.current = true;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
     const pos = getPos(e, canvas);
+    lastPos.current = pos;
+    const ctx = canvas.getContext("2d");
     ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
+    ctx.arc(pos.x, pos.y, brushSize / 2, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
   };
 
   const draw = (e) => {
@@ -168,20 +173,30 @@ function CanvasBoard({ myId, appState, onSendCanvas, onClearCanvas }) {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     const pos = getPos(e, canvas);
+    ctx.beginPath();
+    ctx.moveTo(lastPos.current.x, lastPos.current.y);
     ctx.lineTo(pos.x, pos.y);
     ctx.strokeStyle = color;
     ctx.lineWidth = brushSize;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.stroke();
+    lastPos.current = pos;
   };
 
-  const stopDraw = () => { isDrawing.current = false; };
+  const stopDraw = () => { isDrawing.current = false; lastPos.current = null; };
 
   const handleSend = () => {
     const canvas = canvasRef.current;
-    const data = canvas.toDataURL("image/png");
-    onSendCanvas(data);
+    if (!canvas) return;
+    setSendStatus("sending");
+    // Small timeout so UI updates before heavy toDataURL call
+    setTimeout(() => {
+      const data = canvas.toDataURL("image/jpeg", 0.7); // jpeg smaller than png
+      onSendCanvas(data);
+      setSendStatus("sent");
+      setTimeout(() => setSendStatus("idle"), 2500);
+    }, 50);
   };
 
   const handleClear = () => {
@@ -199,10 +214,10 @@ function CanvasBoard({ myId, appState, onSendCanvas, onClearCanvas }) {
       {/* Toggle */}
       <div className="board-toggle">
         <button className={`board-toggle-btn ${viewMode === "mine" ? "board-toggle-btn--active" : ""}`} onClick={() => setViewMode("mine")}>
-          ✏️ My Board
+           My Board
         </button>
         <button className={`board-toggle-btn ${viewMode === "partner" ? "board-toggle-btn--active" : ""}`} onClick={() => setViewMode("partner")}>
-          👀 {partnerName}'s Board
+           {partnerName}'s Board
         </button>
       </div>
 
@@ -228,7 +243,7 @@ function CanvasBoard({ myId, appState, onSendCanvas, onClearCanvas }) {
           {/* Canvas */}
           <canvas
             ref={canvasRef}
-            width={320} height={320}
+            width={600} height={600}
             className="draw-canvas"
             onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
             onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
@@ -237,7 +252,15 @@ function CanvasBoard({ myId, appState, onSendCanvas, onClearCanvas }) {
           {/* Actions */}
           <div className="board-actions">
             <button className="board-clear-btn" onClick={handleClear}>🗑️ Clear</button>
-            <button className="board-send-btn" onClick={handleSend}>Send Drawing ✉️</button>
+            <button
+              className={`board-send-btn ${sendStatus === "sent" ? "board-send-btn--sent" : ""}`}
+              onClick={handleSend}
+              disabled={sendStatus === "sending"}
+            >
+              {sendStatus === "idle" && "Send Drawing ✉️"}
+              {sendStatus === "sending" && "Sending…"}
+              {sendStatus === "sent" && "Sent! ✓"}
+            </button>
           </div>
         </>
       ) : (

@@ -161,8 +161,10 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;-webkit-ta
 .board-actions{display:flex;gap:10px;width:100%;max-width:320px;}
 .board-clear-btn{flex:1;padding:12px 0;border-radius:99px;font-size:.88rem;font-weight:600;background:var(--surf2);border:1px solid var(--brd);color:var(--red);transition:transform .1s;}
 .board-clear-btn:active{transform:scale(.95);}
-.board-send-btn{flex:2;padding:12px 0;border-radius:99px;font-size:.88rem;font-weight:700;background:linear-gradient(135deg,var(--acc2),var(--acc));color:#fff;transition:transform .1s;}
+.board-send-btn{flex:2;padding:12px 0;border-radius:99px;font-size:.88rem;font-weight:700;background:linear-gradient(135deg,var(--acc2),var(--acc));color:#fff;transition:transform .1s,background .2s;}
 .board-send-btn:active{transform:scale(.95);}
+.board-send-btn--sent{background:linear-gradient(135deg,#10B981,#34d399);}
+.board-send-btn:disabled{opacity:.7;}
 
 .partner-board-view{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:320px;}
 .partner-canvas-img{width:100%;border-radius:var(--radius);border:1.5px solid var(--brd);}
