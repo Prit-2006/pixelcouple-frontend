@@ -127,7 +127,7 @@ function CanvasBoard({ myId, appState, onSendCanvas, onClearCanvas }) {
   const [viewMode, setViewMode] = useState("mine");
   const [sendStatus, setSendStatus] = useState("idle"); // idle | sending | sent
   const partnerId = myId === "user_1" ? "user_2" : "user_1";
-  const partnerName = myId === "user_1" ? "Girlfriend" : "Boyfriend";
+  const partnerName = appState?.[partnerId]?.name || (myId === "user_1" ? "WHITE" : "DARK");
 
   // Load my saved canvas on mount
   useEffect(() => {
@@ -214,10 +214,10 @@ function CanvasBoard({ myId, appState, onSendCanvas, onClearCanvas }) {
       {/* Toggle */}
       <div className="board-toggle">
         <button className={`board-toggle-btn ${viewMode === "mine" ? "board-toggle-btn--active" : ""}`} onClick={() => setViewMode("mine")}>
-           My Board
+          ✏️ My Board
         </button>
         <button className={`board-toggle-btn ${viewMode === "partner" ? "board-toggle-btn--active" : ""}`} onClick={() => setViewMode("partner")}>
-           {partnerName}'s Board
+          👀 {partnerName}'s Board
         </button>
       </div>
 
@@ -365,8 +365,8 @@ function RoleScreen({ onSelect }) {
         <h1 className="app-title">PixelCouple</h1>
         <p className="role-sub">Who are you?</p>
         <div className="role-buttons">
-          <button className="role-btn" onClick={() => onSelect("user_1")}><span className="role-emoji">👦</span><span>Boyfriend</span></button>
-          <button className="role-btn" onClick={() => onSelect("user_2")}><span className="role-emoji">👧</span><span>Girlfriend</span></button>
+          <button className="role-btn" onClick={() => onSelect("user_1")}><span className="role-emoji">👦</span><span>DARK</span></button>
+          <button className="role-btn" onClick={() => onSelect("user_2")}><span className="role-emoji">👧</span><span>WHITE</span></button>
         </div>
         <p className="role-note">Only need to pick this once.</p>
       </div>
