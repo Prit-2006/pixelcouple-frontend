@@ -1,6 +1,6 @@
 /**
  * PixelCouple — App.jsx
- * Features: Status, Mood Note, Streak, Flowers, Compliments, Canvas, Playlist
+ * Features: Status, Mood Note, Streak, Flowers, Compliments, Canvas, Playlist, Coins, Pet
  */
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -23,6 +23,35 @@ const STATUSES = [
 
 const FLOWER_EMOJIS = ["🌸", "🌹", "🌺", "🌻", "💐", "🌷", "🌼"];
 const COLORS = ["#e8e8f0", "#d46ef3", "#ff6fb0", "#f87171", "#fbbf24", "#4ade80", "#60a5fa", "#a78bfa"];
+
+// Shop catalog — must match server.js SHOP_FOODS / SHOP_OUTFITS
+const SHOP_FOODS = {
+  bone:     { cost: 10, hunger: 20, happiness: 0,  emoji: "🦴", name: "Bone" },
+  burger:   { cost: 20, hunger: 35, happiness: 2,  emoji: "🍔", name: "Burger" },
+  cake:     { cost: 40, hunger: 60, happiness: 10, emoji: "🎂", name: "Cake" },
+  icecream: { cost: 15, hunger: 10, happiness: 15, emoji: "🍦", name: "Ice Cream" },
+};
+const SHOP_OUTFITS = {
+  party_hat:  { cost: 50,  slot: "head", emoji: "🎉", name: "Party Hat" },
+  crown:      { cost: 100, slot: "head", emoji: "👑", name: "Crown" },
+  bow:        { cost: 45,  slot: "head", emoji: "🎀", name: "Bow" },
+  sunglasses: { cost: 60,  slot: "face", emoji: "🕶️", name: "Sunglasses" },
+  bandana:    { cost: 40,  slot: "neck", emoji: "🧣", name: "Bandana" },
+};
+const HUNGER_DECAY_PER_HOUR = 4;
+const HAPPINESS_DECAY_PER_HOUR = 3;
+
+function clamp(v) { return Math.max(0, Math.min(100, v)); }
+
+// Computes current pet stats factoring in time-based decay since last update
+function getEffectivePet(pet) {
+  if (!pet) return { hunger: 70, happiness: 70 };
+  const hours = Math.max(0, (Date.now() - new Date(pet.stats_updated_at).getTime()) / 3600000);
+  return {
+    hunger: clamp(pet.hunger - hours * HUNGER_DECAY_PER_HOUR),
+    happiness: clamp(pet.happiness - hours * HAPPINESS_DECAY_PER_HOUR),
+  };
+}
 
 function timeAgo(isoString) {
   if (!isoString) return "just now";
@@ -356,7 +385,255 @@ function PlaylistScreen({ myId, playlist, onAddSong, onDeleteSong }) {
   );
 }
 
-// ─── Role Screen ──────────────────────────────────────────────────────────────
+// ─── Pet Screen ────────────────────────────────────────────────────────────────
+function PetScreen({ appState, onPet, onFeed, onEquip, onBuy }) {
+  const [showShop, setShowShop] = useState(false);
+  const [, forceTick] = useState(0);
+  const dogRef = useRef(null);
+  const mouthRef = useRef(null);
+
+  const coins = appState?.coins || 0;
+  const pet = appState?.pet || { hunger: 70, happiness: 70, stats_updated_at: new Date().toISOString(), equipped_head: null, equipped_face: null, equipped_neck: null };
+  const inventory = appState?.inventory || { foods: {}, outfits: [] };
+
+  // Re-render every 30s so hunger/happiness bars visually decay over time
+  useEffect(() => {
+    const id = setInterval(() => forceTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const eff = getEffectivePet(pet);
+  const isSleeping = eff.hunger <= 15;
+
+  const headItem = pet.equipped_head ? SHOP_OUTFITS[pet.equipped_head] : null;
+  const faceItem = pet.equipped_face ? SHOP_OUTFITS[pet.equipped_face] : null;
+  const neckItem = pet.equipped_neck ? SHOP_OUTFITS[pet.equipped_neck] : null;
+
+  const [petAnim, setPetAnim] = useState(false);
+  const [heartShow, setHeartShow] = useState(false);
+  const [eatAnim, setEatAnim] = useState(false);
+
+  const handlePetTap = () => {
+    if (isSleeping) return;
+    onPet();
+    setPetAnim(true);
+    setHeartShow(true);
+    setTimeout(() => setPetAnim(false), 400);
+    setTimeout(() => setHeartShow(false), 800);
+  };
+
+  // ── Drag-to-feed ───────────────────────────────────────────────────────────
+  const dragFood = useRef(null); // { itemKey, ghostEl }
+
+  const getPoint = (e) => {
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX, y: t.clientY };
+  };
+
+  const startDragFood = (itemKey) => (e) => {
+    if ((inventory.foods[itemKey] || 0) <= 0) return;
+    if (isSleeping) return;
+    e.preventDefault();
+    const pt = getPoint(e);
+    const ghost = document.createElement("div");
+    ghost.textContent = SHOP_FOODS[itemKey].emoji;
+    ghost.style.position = "fixed";
+    ghost.style.fontSize = "30px";
+    ghost.style.zIndex = "9999";
+    ghost.style.pointerEvents = "none";
+    ghost.style.left = (pt.x - 15) + "px";
+    ghost.style.top = (pt.y - 15) + "px";
+    document.body.appendChild(ghost);
+    dragFood.current = { itemKey, ghostEl: ghost };
+
+    const move = (ev) => {
+      const p = getPoint(ev);
+      ghost.style.left = (p.x - 15) + "px";
+      ghost.style.top = (p.y - 15) + "px";
+    };
+    const end = (ev) => {
+      const p = ev.changedTouches ? { x: ev.changedTouches[0].clientX, y: ev.changedTouches[0].clientY } : getPoint(ev);
+      const mouth = mouthRef.current;
+      if (mouth) {
+        const rect = mouth.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dist = Math.sqrt((p.x - cx) ** 2 + (p.y - cy) ** 2);
+        if (dist < 60) {
+          onFeed(itemKey);
+          setEatAnim(true);
+          setTimeout(() => setEatAnim(false), 400);
+        }
+      }
+      ghost.remove();
+      dragFood.current = null;
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("touchmove", move);
+      window.removeEventListener("mouseup", end);
+      window.removeEventListener("touchend", end);
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("touchmove", move, { passive: false });
+    window.addEventListener("mouseup", end);
+    window.addEventListener("touchend", end);
+  };
+
+  return (
+    <div className="pet-screen">
+      <div className="coin-row">
+        <div className="coin-badge">🪙 {coins}</div>
+        <button className="shop-btn" onClick={() => setShowShop(true)}>🛍️ Shop</button>
+      </div>
+
+      <div className="pet-bars">
+        <div className="pet-bar-wrap">
+          <div className="pet-bar-label">hunger</div>
+          <div className="pet-bar-track"><div className="pet-bar-fill" style={{ width: `${eff.hunger}%`, background: eff.hunger < 30 ? "#f87171" : "#f59e0b" }} /></div>
+        </div>
+        <div className="pet-bar-wrap">
+          <div className="pet-bar-label">happiness</div>
+          <div className="pet-bar-track"><div className="pet-bar-fill" style={{ width: `${eff.happiness}%`, background: "#d46ef3" }} /></div>
+        </div>
+      </div>
+
+      <div className="pet-stage">
+        <div
+          ref={dogRef}
+          className={`dog ${petAnim ? "dog--pet" : ""} ${eatAnim ? "dog--eat" : ""} ${isSleeping ? "dog--sleep" : ""}`}
+          onClick={handlePetTap}
+        >
+          {headItem && <div className="dog-head-item">{headItem.emoji}</div>}
+          {faceItem && <div className="dog-face-item">{faceItem.emoji}</div>}
+          {neckItem && <div className="dog-neck-item">{neckItem.emoji}</div>}
+          {heartShow && <div className="dog-heart">❤️</div>}
+          {isSleeping && <div className="dog-zzz">💤</div>}
+          <div className="dog-ear dog-ear--left" />
+          <div className="dog-ear dog-ear--right" />
+          <div className="dog-body" />
+          {!isSleeping ? (
+            <>
+              <div className="dog-eye dog-eye--left"><div className="dog-eye-shine" /></div>
+              <div className="dog-eye dog-eye--right"><div className="dog-eye-shine" /></div>
+            </>
+          ) : (
+            <>
+              <div className="dog-eye-closed dog-eye-closed--left" />
+              <div className="dog-eye-closed dog-eye-closed--right" />
+            </>
+          )}
+          <div className="dog-nose" />
+          <div ref={mouthRef} className="dog-mouth" />
+        </div>
+      </div>
+
+      <p className="pet-hint">
+        {isSleeping ? "Asleep — feed to wake up 🍖" : "Tap to pet · drag food to mouth"}
+      </p>
+
+      {/* Food tray */}
+      <div className="food-tray">
+        {Object.entries(SHOP_FOODS).map(([key, food]) => {
+          const count = inventory.foods[key] || 0;
+          return (
+            <div key={key} className={`food-item ${count === 0 ? "food-item--empty" : ""}`}>
+              <div
+                className="food-emoji"
+                onMouseDown={count > 0 ? startDragFood(key) : undefined}
+                onTouchStart={count > 0 ? startDragFood(key) : undefined}
+              >
+                {food.emoji}
+              </div>
+              <span className="food-count">x{count}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {showShop && (
+        <PetShopModal
+          coins={coins}
+          inventory={inventory}
+          pet={pet}
+          onBuy={onBuy}
+          onEquip={onEquip}
+          onClose={() => setShowShop(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Pet Shop Modal ───────────────────────────────────────────────────────────
+function PetShopModal({ coins, inventory, pet, onBuy, onEquip, onClose }) {
+  const [section, setSection] = useState("food"); // "food" | "outfits"
+
+  return (
+    <div className="compliment-overlay" onClick={onClose}>
+      <div className="shop-card" onClick={(e) => e.stopPropagation()}>
+        <div className="shop-header">
+          <p className="shop-title">🛍️ Pet Shop</p>
+          <div className="coin-badge">🪙 {coins}</div>
+        </div>
+
+        <div className="board-toggle">
+          <button className={`board-toggle-btn ${section === "food" ? "board-toggle-btn--active" : ""}`} onClick={() => setSection("food")}>🍖 Food</button>
+          <button className={`board-toggle-btn ${section === "outfits" ? "board-toggle-btn--active" : ""}`} onClick={() => setSection("outfits")}>👑 Outfits</button>
+        </div>
+
+        <div className="shop-list">
+          {section === "food" && Object.entries(SHOP_FOODS).map(([key, food]) => {
+            const owned = inventory.foods[key] || 0;
+            const canAfford = coins >= food.cost;
+            return (
+              <div key={key} className="shop-item">
+                <div className="shop-item-emoji">{food.emoji}</div>
+                <div className="shop-item-info">
+                  <p className="shop-item-name">{food.name}</p>
+                  <p className="shop-item-effect">+{food.hunger} hunger{food.happiness > 0 ? `, +${food.happiness} happiness` : ""}</p>
+                  {owned > 0 && <p className="shop-item-owned">You have: {owned}</p>}
+                </div>
+                <button className="shop-buy-btn" disabled={!canAfford} onClick={() => onBuy("food", key)}>
+                  🪙 {food.cost}
+                </button>
+              </div>
+            );
+          })}
+
+          {section === "outfits" && Object.entries(SHOP_OUTFITS).map(([key, item]) => {
+            const owned = inventory.outfits.includes(key);
+            const canAfford = coins >= item.cost;
+            const isEquipped = pet[`equipped_${item.slot}`] === key;
+            return (
+              <div key={key} className="shop-item">
+                <div className="shop-item-emoji">{item.emoji}</div>
+                <div className="shop-item-info">
+                  <p className="shop-item-name">{item.name}</p>
+                  <p className="shop-item-effect">{item.slot} slot</p>
+                </div>
+                {owned ? (
+                  <button
+                    className={`shop-equip-btn ${isEquipped ? "shop-equip-btn--active" : ""}`}
+                    onClick={() => onEquip(item.slot, isEquipped ? null : key)}
+                  >
+                    {isEquipped ? "Equipped ✓" : "Equip"}
+                  </button>
+                ) : (
+                  <button className="shop-buy-btn" disabled={!canAfford} onClick={() => onBuy("outfit", key)}>
+                    🪙 {item.cost}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <button className="compliment-cancel" onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
+}
+
+
 function RoleScreen({ onSelect }) {
   return (
     <div className="role-screen">
@@ -544,6 +821,11 @@ function MainApp({ myId }) {
   const handleAddSong = useCallback((songData) => { if (!socketRef.current) return; socketRef.current.emit("add_song", { addedBy: myId, ...songData }); }, [myId]);
   const handleDeleteSong = useCallback((songId) => { if (!socketRef.current) return; socketRef.current.emit("delete_song", { songId, userId: myId }); }, [myId]);
 
+  const handlePetTap = useCallback(() => { if (!socketRef.current) return; socketRef.current.emit("pet_pet"); }, []);
+  const handleFeedPet = useCallback((itemKey) => { if (!socketRef.current) return; socketRef.current.emit("feed_pet", { itemKey }); }, []);
+  const handleEquipItem = useCallback((slot, itemKey) => { if (!socketRef.current) return; socketRef.current.emit("equip_item", { slot, itemKey }); }, []);
+  const handleBuyItem = useCallback((itemType, itemKey) => { if (!socketRef.current) return; socketRef.current.emit("buy_item", { itemType, itemKey }); }, []);
+
   const myData = appState?.[myId] || null;
   const partnerData = appState?.[partnerId] || null;
   const streak = appState?.streak || { count: 0 };
@@ -564,6 +846,7 @@ function MainApp({ myId }) {
         <button className={`tab-btn ${tab === "me" ? "tab-btn--active" : ""}`} onClick={() => setTab("me")}>🎮</button>
         <button className={`tab-btn ${tab === "board" ? "tab-btn--active" : ""}`} onClick={() => setTab("board")}>🎨</button>
         <button className={`tab-btn ${tab === "playlist" ? "tab-btn--active" : ""}`} onClick={() => setTab("playlist")}>🎵</button>
+        <button className={`tab-btn ${tab === "pet" ? "tab-btn--active" : ""}`} onClick={() => setTab("pet")}>🐶</button>
       </nav>
 
       <div className="tab-content">
@@ -571,8 +854,10 @@ function MainApp({ myId }) {
         {tab === "me" && <MyController myData={myData} onUpdate={handleUpdate} onMoodSend={handleMoodSend} isSending={isSending} streak={streak} />}
         {tab === "board" && <CanvasBoard myId={myId} appState={appState} onSendCanvas={handleSendCanvas} onClearCanvas={handleClearCanvas} />}
         {tab === "playlist" && <PlaylistScreen myId={myId} playlist={playlist} onAddSong={handleAddSong} onDeleteSong={handleDeleteSong} />}
+        {tab === "pet" && <PetScreen appState={appState} onPet={handlePetTap} onFeed={handleFeedPet} onEquip={handleEquipItem} onBuy={handleBuyItem} />}
       </div>
     </div>
+
   );
 }
 
