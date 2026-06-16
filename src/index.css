@@ -203,133 +203,58 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;-webkit-ta
 .song-meta{font-size:.72rem;color:var(--muted);}
 
 /* ─── Pet Screen ───────────────────────────────────────────────────────────── */
-.pet-screen{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 16px 40px;}
+.pet-screen{display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 16px 40px;}
 
 .coin-row{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:320px;}
 .coin-badge{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#3d2200;border-radius:99px;padding:7px 16px;font-size:.85rem;font-weight:700;}
 .shop-btn{background:var(--surf2);border:1px solid var(--brd);border-radius:99px;padding:8px 16px;font-size:.82rem;font-weight:600;color:var(--tx);transition:transform .1s,border-color .15s;}
 .shop-btn:active{transform:scale(.95);}
-.shop-btn:hover{border-color:var(--acc);}
 
-/* ── Hunger / Happiness bars (FIXED) ── */
+/* Bars */
 .pet-bars{display:flex;flex-direction:column;gap:8px;width:100%;max-width:320px;}
 .pet-bar-wrap{display:flex;flex-direction:column;gap:4px;}
-.pet-bar-label{font-size:.72rem;color:var(--muted);font-family:monospace;letter-spacing:.06em;}
+.pet-bar-label{font-size:.72rem;color:var(--muted);font-family:monospace;letter-spacing:.05em;}
 .pet-bar-track{width:100%;height:10px;border-radius:99px;background:var(--surf2);border:1px solid var(--brd);overflow:hidden;}
 .pet-bar-fill{height:100%;border-radius:99px;transition:width .6s ease;}
 
-/* ── Stage ── */
-.pet-stage{position:relative;width:100%;max-width:320px;height:230px;display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;}
+/* Reaction text */
+.pet-reaction{font-size:.92rem;color:var(--acc);font-weight:600;min-height:1.4em;text-align:center;}
 
-/* ── Dog wrapper — idle breathing happens here ── */
-.dog{
-  position:relative;
-  width:170px;height:140px;
-  cursor:pointer;
-  /* Idle breathing: gentle scale up-down every 2s */
-  animation:dogBreathe 2s ease-in-out infinite;
-  transform-origin:center bottom;
-}
-@keyframes dogBreathe{
-  0%,100%{transform:scaleY(1) scaleX(1);}
-  50%{transform:scaleY(1.04) scaleX(.98);}
-}
+/* Stage */
+.pet-stage{position:relative;width:100%;max-width:320px;display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;}
 
-/* Pet reaction — overrides breathing */
-.dog--pet{animation:dogPet .5s ease forwards;}
-@keyframes dogPet{
-  0%{transform:scale(1) rotate(0deg);}
-  20%{transform:scale(1.15) rotate(-6deg);}
-  40%{transform:scale(1.1) rotate(6deg);}
-  60%{transform:scale(1.05) rotate(-3deg);}
-  80%{transform:scale(1.02) rotate(2deg);}
-  100%{transform:scale(1) rotate(0deg);}
-}
+/* Beagle SVG */
+.beagle-svg{overflow:visible;filter:drop-shadow(0 8px 24px rgba(212,110,243,0.15));}
+.beagle-spin{animation:beagleSpin .8s ease;}
+@keyframes beagleSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 
-/* Eat reaction */
-.dog--eat{animation:dogEat .5s ease;}
-@keyframes dogEat{
-  0%,100%{transform:scale(1);}
-  30%{transform:scale(1.08) translateY(-4px);}
-  60%{transform:scale(.97) translateY(2px);}
-}
+/* Tail wag */
+.tail-wag{animation:tailWag 0.8s ease-in-out infinite;}
+.tail-wag-fast{animation:tailWag 0.3s ease-in-out infinite;}
+@keyframes tailWag{0%,100%{transform:rotate(0deg)}50%{transform:rotate(25deg)}}
 
-.dog--sleep{cursor:default;animation:dogBreathe 4s ease-in-out infinite;filter:brightness(.8);}
+/* Ear animations */
+.ear-left{animation:earWagL 4s ease-in-out infinite 1s;transform-origin:50% 90%;}
+.ear-right{animation:earWagR 4s ease-in-out infinite 1.4s;transform-origin:50% 90%;}
+@keyframes earWagL{0%,80%,100%{transform:rotate(0deg)}85%{transform:rotate(-15deg)}92%{transform:rotate(8deg)}}
+@keyframes earWagR{0%,80%,100%{transform:rotate(0deg)}85%{transform:rotate(15deg)}92%{transform:rotate(-8deg)}}
 
-/* ── Body ── */
-.dog-body{position:absolute;bottom:0;left:12px;width:148px;height:114px;background:#d4a373;border-radius:60px 60px 50px 50px;}
+/* Floating emoji */
+.pet-floater{position:absolute;font-size:22px;pointer-events:none;animation:floatUp .9s ease forwards;}
+@keyframes floatUp{0%{opacity:1;transform:translate(0,0) scale(.7);}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(1.2);}}
 
-/* ── Ears — wiggle on idle ── */
-.dog-ear{position:absolute;top:-12px;width:42px;height:64px;background:#b07d4f;border-radius:50%;transform-origin:bottom center;}
-.dog-ear--left{left:8px;transform:rotate(-25deg);animation:earWiggleL 4s ease-in-out infinite 1s;}
-.dog-ear--right{right:8px;transform:rotate(25deg);animation:earWiggleR 4s ease-in-out infinite 1.2s;}
-@keyframes earWiggleL{
-  0%,85%,100%{transform:rotate(-25deg);}
-  90%{transform:rotate(-40deg);}
-  95%{transform:rotate(-18deg);}
-}
-@keyframes earWiggleR{
-  0%,85%,100%{transform:rotate(25deg);}
-  90%{transform:rotate(40deg);}
-  95%{transform:rotate(18deg);}
-}
-/* During pet reaction, ears flap faster */
-.dog--pet .dog-ear--left{animation:earFlapL .5s ease;}
-.dog--pet .dog-ear--right{animation:earFlapR .5s ease;}
-@keyframes earFlapL{0%{transform:rotate(-25deg);}30%{transform:rotate(-50deg);}60%{transform:rotate(-15deg);}100%{transform:rotate(-25deg);}}
-@keyframes earFlapR{0%{transform:rotate(25deg);}30%{transform:rotate(50deg);}60%{transform:rotate(15deg);}100%{transform:rotate(25deg);}}
+/* Zzz */
+.dog-zzz{position:absolute;top:-10px;right:30px;font-size:24px;animation:dogZzz 2.4s ease-in-out infinite;z-index:5;}
+@keyframes dogZzz{0%,100%{opacity:.3;transform:translateY(0) scale(.8);}50%{opacity:1;transform:translateY(-12px) scale(1);}}
 
-/* ── Normal eyes ── */
-.dog-eye{position:absolute;top:36px;width:18px;height:18px;background:#2c1a0e;border-radius:50%;transition:height .2s;}
-.dog-eye--left{left:38px;}
-.dog-eye--right{right:38px;}
-.dog-eye-shine{position:absolute;top:3px;left:3px;width:6px;height:6px;background:#fff;border-radius:50%;}
+/* Action buttons */
+.pet-actions{display:flex;gap:8px;width:100%;max-width:320px;justify-content:center;}
+.pet-action-btn{flex:1;padding:10px 0;border-radius:99px;font-size:.82rem;font-weight:600;background:var(--surf2);border:1.5px solid var(--brd);color:var(--tx);transition:transform .1s,border-color .15s,background .15s;}
+.pet-action-btn:active{transform:scale(.93);background:var(--surf);border-color:var(--acc);}
 
-/* Eyes squeeze shut during blink (idle) */
-.dog-eye{animation:eyeBlink 5s ease-in-out infinite 2s;}
-@keyframes eyeBlink{0%,88%,100%{height:18px;}92%,96%{height:2px;}}
+.pet-hint{font-size:.72rem;color:var(--muted);text-align:center;max-width:280px;}
 
-/* Happy squint eyes — shown after pet */
-.dog-eye--happy{height:4px!important;border-radius:99px;animation:none!important;}
-
-/* Sleeping closed eyes */
-.dog-eye-closed{position:absolute;top:44px;width:18px;height:3px;background:#2c1a0e;border-radius:99px;}
-.dog-eye-closed--left{left:38px;}
-.dog-eye-closed--right{right:38px;}
-
-/* ── Nose ── */
-.dog-nose{position:absolute;top:62px;left:50%;transform:translateX(-50%);width:20px;height:15px;background:#4a2f1c;border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;}
-
-/* ── Mouth & tongue ── */
-.dog-mouth{position:absolute;top:80px;left:50%;transform:translateX(-50%);width:26px;height:8px;background:#4a2f1c;border-radius:0 0 13px 13px;transition:height .2s,width .2s;overflow:visible;}
-.dog--eat .dog-mouth{height:22px;width:30px;border-radius:0 0 20px 20px;}
-/* Happy open mouth (after pet) */
-.dog-mouth--happy{height:18px!important;width:32px!important;border-radius:0 0 20px 20px!important;}
-/* Tongue — visible in happy/eat states */
-.dog-tongue{position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:14px;height:14px;background:#e87878;border-radius:50% 50% 50% 50% / 40% 40% 60% 60%;display:none;}
-.dog-mouth--happy .dog-tongue,
-.dog--eat .dog-tongue{display:block;}
-
-/* ── Floating hearts (petted) ── */
-.dog-heart{position:absolute;font-size:20px;pointer-events:none;animation:floatHeart 1s ease forwards;}
-@keyframes floatHeart{0%{opacity:1;transform:translateY(0) scale(.7);}100%{opacity:0;transform:translateY(-50px) scale(1.3);}}
-
-/* ── Stars (petted — extra flair) ── */
-.dog-star{position:absolute;font-size:16px;pointer-events:none;animation:floatStar .9s ease forwards;}
-@keyframes floatStar{0%{opacity:1;transform:translate(0,0) scale(.5) rotate(0deg);}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(1.1) rotate(180deg);}}
-
-/* ── Zzz (sleeping) ── */
-.dog-zzz{position:absolute;top:-14px;right:8px;font-size:22px;animation:dogZzz 2.4s ease-in-out infinite;}
-@keyframes dogZzz{0%,100%{opacity:.3;transform:translateY(0) scale(.8);}50%{opacity:1;transform:translateY(-10px) scale(1);}}
-
-/* ── Accessories ── */
-.dog-head-item{position:absolute;top:-44px;left:50%;transform:translateX(-50%);font-size:38px;z-index:3;pointer-events:none;}
-.dog-face-item{position:absolute;top:34px;left:50%;transform:translateX(-50%);font-size:32px;z-index:3;pointer-events:none;}
-.dog-neck-item{position:absolute;top:88px;left:50%;transform:translateX(-50%);font-size:30px;z-index:1;pointer-events:none;}
-
-.pet-hint{font-size:.78rem;color:var(--muted);text-align:center;}
-
-/* ── Food tray ── */
+/* Food tray */
 .food-tray{display:flex;gap:16px;justify-content:center;width:100%;max-width:320px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--radius);padding:14px;}
 .food-item{display:flex;flex-direction:column;align-items:center;gap:4px;}
 .food-item--empty{opacity:.3;}
@@ -342,6 +267,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;-webkit-ta
 .shop-card{background:var(--surf);border:1px solid var(--brd);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:12px;width:100%;max-width:360px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px #0008;}
 .shop-header{display:flex;align-items:center;justify-content:space-between;}
 .shop-title{font-family:"Press Start 2P",monospace;font-size:.78rem;color:var(--tx);}
+.shop-tabs{display:flex;gap:4px;flex-wrap:wrap;}
+.shop-tab{padding:5px 10px;border-radius:99px;font-size:.7rem;font-weight:600;background:var(--surf2);border:1px solid var(--brd);color:var(--muted);transition:all .15s;white-space:nowrap;}
+.shop-tab--active{background:var(--acc2);border-color:var(--acc2);color:#fff;}
 .shop-list{display:flex;flex-direction:column;gap:8px;}
 .shop-item{display:flex;align-items:center;gap:12px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--radius-sm);padding:10px 12px;}
 .shop-item-emoji{font-size:1.8rem;flex-shrink:0;}

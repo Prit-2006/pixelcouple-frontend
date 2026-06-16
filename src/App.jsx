@@ -31,13 +31,6 @@ const SHOP_FOODS = {
   cake:     { cost: 40, hunger: 60, happiness: 10, emoji: "🎂", name: "Cake" },
   icecream: { cost: 15, hunger: 10, happiness: 15, emoji: "🍦", name: "Ice Cream" },
 };
-const SHOP_OUTFITS = {
-  party_hat:  { cost: 50,  slot: "head", emoji: "🎉", name: "Party Hat" },
-  crown:      { cost: 100, slot: "head", emoji: "👑", name: "Crown" },
-  bow:        { cost: 45,  slot: "head", emoji: "🎀", name: "Bow" },
-  sunglasses: { cost: 60,  slot: "face", emoji: "🕶️", name: "Sunglasses" },
-  bandana:    { cost: 40,  slot: "neck", emoji: "🧣", name: "Bandana" },
-};
 const HUNGER_DECAY_PER_HOUR = 4;
 const HAPPINESS_DECAY_PER_HOUR = 3;
 
@@ -385,116 +378,406 @@ function PlaylistScreen({ myId, playlist, onAddSong, onDeleteSong }) {
   );
 }
 
+// ─── Beagle SVG + Pet Screen ──────────────────────────────────────────────────
+
+// Full outfit catalog — slot: head | body | neck | face | back
+const OUTFITS = {
+  // HEAD
+  top_hat:      { cost:80,  slot:"head", emoji:"🎩", name:"Top Hat" },
+  crown:        { cost:150, slot:"head", emoji:"👑", name:"Crown" },
+  party_hat:    { cost:50,  slot:"head", emoji:"🎉", name:"Party Hat" },
+  bow:          { cost:40,  slot:"head", emoji:"🎀", name:"Hair Bow" },
+  santa_hat:    { cost:60,  slot:"head", emoji:"🎅", name:"Santa Hat" },
+  flower_crown: { cost:55,  slot:"head", emoji:"🌸", name:"Flower Crown" },
+  cap:          { cost:45,  slot:"head", emoji:"🧢", name:"Cap" },
+  // FACE
+  sunglasses:   { cost:60,  slot:"face", emoji:"🕶️", name:"Sunglasses" },
+  heart_glasses:{ cost:65,  slot:"face", emoji:"🥰", name:"Heart Glasses" },
+  // NECK
+  bandana:      { cost:35,  slot:"neck", emoji:"🧣", name:"Bandana" },
+  bow_tie:      { cost:40,  slot:"neck", emoji:"🎗️", name:"Bow Tie" },
+  collar_bell:  { cost:30,  slot:"neck", emoji:"🔔", name:"Bell Collar" },
+  scarf:        { cost:45,  slot:"neck", emoji:"🧤", name:"Scarf" },
+  // BODY
+  hoodie:       { cost:90,  slot:"body", emoji:"👕", name:"Hoodie" },
+  jacket:       { cost:100, slot:"body", emoji:"🧥", name:"Jacket" },
+  tshirt:       { cost:70,  slot:"body", emoji:"👔", name:"T-Shirt" },
+  cape:         { cost:110, slot:"body", emoji:"🦸", name:"Cape" },
+  // BACK
+  backpack:     { cost:75,  slot:"back", emoji:"🎒", name:"Backpack" },
+  wings:        { cost:120, slot:"back", emoji:"🦋", name:"Fairy Wings" },
+};
+
+// Training tricks
+const TRICKS = ["sit","shake","roll over","spin","stay","high five"];
+
+// ─── Beagle SVG Component ──────────────────────────────────────────────────────
+function BeagleSVG({ state, outfit, onZoneClick, petted }) {
+  // state: "stand" | "sit" | "belly" | "yawn" | "spin" | "shake"
+  // petted: "head"|"belly"|"back"|"snout"|null
+
+  const tailAngle = petted ? 45 : 20;
+  const bodyY = state === "sit" ? 10 : 0;
+  const legsHidden = state === "sit";
+  const bellyUp = state === "belly";
+  const eyeHappy = petted === "head" || petted === "belly";
+  const mouthOpen = petted === "snout" || state === "yawn";
+  const spinning = state === "spin";
+
+  // Outfit items
+  const headItem  = outfit.head  ? OUTFITS[outfit.head]  : null;
+  const faceItem  = outfit.face  ? OUTFITS[outfit.face]  : null;
+  const neckItem  = outfit.neck  ? OUTFITS[outfit.neck]  : null;
+  const bodyItem  = outfit.body  ? OUTFITS[outfit.body]  : null;
+  const backItem  = outfit.back  ? OUTFITS[outfit.back]  : null;
+
+  return (
+    <svg
+      viewBox="0 0 200 220"
+      className={`beagle-svg ${spinning ? "beagle-spin" : ""}`}
+      style={{ width: "100%", maxWidth: 280, overflow: "visible" }}
+    >
+      <defs>
+        <radialGradient id="bodyGrad" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stopColor="#e8c89a"/>
+          <stop offset="100%" stopColor="#c8985a"/>
+        </radialGradient>
+        <radialGradient id="darkGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#6b3a1f"/>
+          <stop offset="100%" stopColor="#3d1e08"/>
+        </radialGradient>
+      </defs>
+
+      {/* ── TAIL ── */}
+      {!bellyUp && (
+        <g className={petted === "back" ? "tail-wag-fast" : "tail-wag"}>
+          <ellipse cx="158" cy={130 + bodyY} rx="8" ry="22" fill="#c8985a"
+            transform={`rotate(${tailAngle} 158 ${152 + bodyY})`} />
+          <ellipse cx="163" cy={110 + bodyY} rx="5" ry="10" fill="#fff"
+            transform={`rotate(${tailAngle - 10} 158 ${152 + bodyY})`} />
+        </g>
+      )}
+
+      {/* ── BACK ITEM ── */}
+      {backItem && !bellyUp && (
+        <text x="148" y={110 + bodyY} fontSize="28" textAnchor="middle">{backItem.emoji}</text>
+      )}
+
+      {/* ── BODY ── */}
+      {!bellyUp ? (
+        <g>
+          {/* Main body */}
+          <ellipse cx="100" cy={145 + bodyY} rx="52" ry="42" fill="url(#bodyGrad)" />
+          {/* Saddle marking (classic beagle brown) */}
+          <ellipse cx="100" cy={135 + bodyY} rx="38" ry="26" fill="#6b3a1f" opacity="0.55" />
+          {/* White chest/belly */}
+          <ellipse cx="100" cy={158 + bodyY} rx="32" ry="22" fill="#f5f0e8" />
+
+          {/* BODY OUTFIT */}
+          {bodyItem && (
+            <text x="100" y={155 + bodyY} fontSize="36" textAnchor="middle">{bodyItem.emoji}</text>
+          )}
+
+          {/* Belly touch zone (invisible, big) */}
+          <ellipse cx="100" cy={158 + bodyY} rx="40" ry="28" fill="transparent"
+            onClick={() => onZoneClick("belly")} style={{cursor:"pointer"}} />
+
+          {/* Back touch zone */}
+          <ellipse cx="100" cy={130 + bodyY} rx="38" ry="18" fill="transparent"
+            onClick={() => onZoneClick("back")} style={{cursor:"pointer"}} />
+        </g>
+      ) : (
+        /* BELLY UP state */
+        <g>
+          <ellipse cx="100" cy="160" rx="52" ry="30" fill="url(#bodyGrad)" />
+          <ellipse cx="100" cy="158" rx="34" ry="20" fill="#f5f0e8" />
+          {/* Legs in air */}
+          <ellipse cx="70" cy="130" rx="8" ry="22" fill="#c8985a" transform="rotate(-40 70 150)" />
+          <ellipse cx="130" cy="130" rx="8" ry="22" fill="#c8985a" transform="rotate(40 130 150)" />
+          <ellipse cx="60" cy="145" rx="8" ry="22" fill="#c8985a" transform="rotate(-20 60 165)" />
+          <ellipse cx="140" cy="145" rx="8" ry="22" fill="#c8985a" transform="rotate(20 140 165)" />
+          {/* Paws */}
+          <ellipse cx="58" cy="115" rx="10" ry="8" fill="#c8985a" />
+          <ellipse cx="142" cy="115" rx="10" ry="8" fill="#c8985a" />
+          <ellipse cx="50" cy="130" rx="10" ry="8" fill="#c8985a" />
+          <ellipse cx="150" cy="130" rx="10" ry="8" fill="#c8985a" />
+        </g>
+      )}
+
+      {/* ── LEGS (standing) ── */}
+      {!legsHidden && !bellyUp && (
+        <g>
+          {/* Front legs */}
+          <rect x="74" y={183 + bodyY} width="14" height="30" rx="7" fill="#c8985a" />
+          <rect x="112" y={183 + bodyY} width="14" height="30" rx="7" fill="#c8985a" />
+          {/* Paws */}
+          <ellipse cx="81" cy={215 + bodyY} rx="10" ry="7" fill="#b07840" />
+          <ellipse cx="119" cy={215 + bodyY} rx="10" ry="7" fill="#b07840" />
+          {/* Back legs (slightly visible) */}
+          <rect x="60" y={178 + bodyY} width="14" height="28" rx="7" fill="#b07840" />
+          <rect x="126" y={178 + bodyY} width="14" height="28" rx="7" fill="#b07840" />
+          <ellipse cx="67" cy={208 + bodyY} rx="10" ry="7" fill="#9a6830" />
+          <ellipse cx="133" cy={208 + bodyY} rx="10" ry="7" fill="#9a6830" />
+        </g>
+      )}
+
+      {/* ── SITTING BACK LEGS ── */}
+      {legsHidden && !bellyUp && (
+        <g>
+          <ellipse cx="68" cy={195 + bodyY} rx="18" ry="12" fill="#b07840" />
+          <ellipse cx="132" cy={195 + bodyY} rx="18" ry="12" fill="#b07840" />
+          <rect x="74" y={185 + bodyY} width="14" height="24" rx="7" fill="#c8985a" />
+          <rect x="112" y={185 + bodyY} width="14" height="24" rx="7" fill="#c8985a" />
+          <ellipse cx="81" cy={210 + bodyY} rx="10" ry="7" fill="#b07840" />
+          <ellipse cx="119" cy={210 + bodyY} rx="10" ry="7" fill="#b07840" />
+        </g>
+      )}
+
+      {/* ── NECK ── */}
+      {!bellyUp && (
+        <ellipse cx="100" cy={103 + bodyY} rx="22" ry="16" fill="#d4a373" />
+      )}
+
+      {/* ── NECK ITEM ── */}
+      {neckItem && !bellyUp && (
+        <text x="100" y={108 + bodyY} fontSize="22" textAnchor="middle">{neckItem.emoji}</text>
+      )}
+
+      {/* ── HEAD ── */}
+      <g onClick={() => onZoneClick("head")} style={{cursor:"pointer"}}>
+        {/* Skull */}
+        <ellipse cx="100" cy={bellyUp ? 188 : 72 + bodyY} rx="38" ry="34" fill="url(#bodyGrad)" />
+        {/* Brown cap marking (beagle saddle on head) */}
+        <ellipse cx="100" cy={bellyUp ? 175 : 60 + bodyY} rx="28" ry="18" fill="#6b3a1f" opacity="0.6" />
+        {/* White muzzle */}
+        <ellipse cx="100" cy={bellyUp ? 198 : 82 + bodyY} rx="22" ry="18" fill="#f5f0e8" />
+        {/* Snout */}
+        <ellipse cx="100" cy={bellyUp ? 200 : 84 + bodyY} rx="14" ry="10" fill="#e8c89a" />
+      </g>
+
+      {/* ── EARS ── */}
+      {!bellyUp && (
+        <>
+          <g className="ear-left">
+            <ellipse cx="66" cy={78 + bodyY} rx="16" ry="32" fill="#6b3a1f"
+              transform={`rotate(-15 66 ${62 + bodyY})`} />
+          </g>
+          <g className="ear-right">
+            <ellipse cx="134" cy={78 + bodyY} rx="16" ry="32" fill="#6b3a1f"
+              transform={`rotate(15 134 ${62 + bodyY})`} />
+          </g>
+        </>
+      )}
+
+      {/* ── EYES ── */}
+      {eyeHappy ? (
+        /* Happy squint */
+        <>
+          <path d={`M ${bellyUp ? 84 : 84} ${bellyUp ? 180 : 68 + bodyY} q 4 -5 8 0`}
+            stroke="#3d1e08" strokeWidth="3" fill="none" strokeLinecap="round"/>
+          <path d={`M ${bellyUp ? 108 : 108} ${bellyUp ? 180 : 68 + bodyY} q 4 -5 8 0`}
+            stroke="#3d1e08" strokeWidth="3" fill="none" strokeLinecap="round"/>
+        </>
+      ) : (
+        /* Normal eyes */
+        <>
+          <ellipse cx={bellyUp ? 88 : 88} cy={bellyUp ? 180 : 68 + bodyY} rx="7" ry="7" fill="#3d1e08" />
+          <ellipse cx={bellyUp ? 112 : 112} cy={bellyUp ? 180 : 68 + bodyY} rx="7" ry="7" fill="#3d1e08" />
+          <ellipse cx={bellyUp ? 90 : 90} cy={bellyUp ? 177 : 65 + bodyY} rx="2.5" ry="2.5" fill="#fff" />
+          <ellipse cx={bellyUp ? 114 : 114} cy={bellyUp ? 177 : 65 + bodyY} rx="2.5" ry="2.5" fill="#fff" />
+        </>
+      )}
+
+      {/* ── NOSE ── */}
+      <ellipse cx="100" cy={bellyUp ? 196 : 86 + bodyY} rx="9" ry="6" fill="#2c1a0e" />
+      <ellipse cx="98" cy={bellyUp ? 194 : 84 + bodyY} rx="2.5" ry="2" fill="#6b4a3a" />
+
+      {/* ── MOUTH ── */}
+      {mouthOpen ? (
+        <g>
+          <path d={`M 90 ${bellyUp ? 204 : 94 + bodyY} q 10 12 20 0`}
+            stroke="#2c1a0e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+          {/* Tongue */}
+          <ellipse cx="100" cy={bellyUp ? 210 : 100 + bodyY} rx="9" ry="7" fill="#e87878" />
+          <line x1="100" y1={bellyUp ? 204 : 100 + bodyY}
+                x2="100" y2={bellyUp ? 212 : 107 + bodyY}
+                stroke="#c85858" strokeWidth="1.5" />
+        </g>
+      ) : (
+        <>
+          <path d={`M 91 ${bellyUp ? 202 : 92 + bodyY} q 9 6 18 0`}
+            stroke="#2c1a0e" strokeWidth="2" fill="none" strokeLinecap="round"/>
+          <line x1="100" y1={bellyUp ? 198 : 88 + bodyY}
+                x2="100" y2={bellyUp ? 202 : 92 + bodyY}
+                stroke="#2c1a0e" strokeWidth="2" />
+        </>
+      )}
+
+      {/* ── SNOUT TOUCH ZONE ── */}
+      <ellipse cx="100" cy={bellyUp ? 198 : 88 + bodyY} rx="18" ry="14" fill="transparent"
+        onClick={() => onZoneClick("snout")} style={{cursor:"pointer"}} />
+
+      {/* ── FACE ITEM ── */}
+      {faceItem && !bellyUp && (
+        <text x="100" y={75 + bodyY} fontSize="26" textAnchor="middle">{faceItem.emoji}</text>
+      )}
+
+      {/* ── HEAD ITEM ── */}
+      {headItem && !bellyUp && (
+        <text x="100" y={bellyUp ? 160 : 38 + bodyY} fontSize="34" textAnchor="middle">{headItem.emoji}</text>
+      )}
+    </svg>
+  );
+}
+
 // ─── Pet Screen ────────────────────────────────────────────────────────────────
 function PetScreen({ appState, onPet, onFeed, onEquip, onBuy }) {
   const [showShop, setShowShop] = useState(false);
   const [, forceTick] = useState(0);
   const mouthRef = useRef(null);
-  const stageRef = useRef(null);
 
   const coins = appState?.coins || 0;
   const pet = appState?.pet || {
-    hunger: 70, happiness: 70,
+    hunger:70, happiness:70,
     stats_updated_at: new Date().toISOString(),
-    equipped_head: null, equipped_face: null, equipped_neck: null,
+    equipped_head:null, equipped_face:null,
+    equipped_neck:null, equipped_body:null, equipped_back:null,
   };
-  const inventory = appState?.inventory || { foods: {}, outfits: [] };
+  const inventory = appState?.inventory || { foods:{}, outfits:[] };
 
-  // Re-render every 30s so bars visually decay
   useEffect(() => {
-    const id = setInterval(() => forceTick((t) => t + 1), 30_000);
+    const id = setInterval(() => forceTick(t => t+1), 30_000);
     return () => clearInterval(id);
   }, []);
 
   const eff = getEffectivePet(pet);
   const isSleeping = eff.hunger <= 15;
 
-  const headItem = pet.equipped_head ? SHOP_OUTFITS[pet.equipped_head] : null;
-  const faceItem = pet.equipped_face ? SHOP_OUTFITS[pet.equipped_face] : null;
-  const neckItem = pet.equipped_neck ? SHOP_OUTFITS[pet.equipped_neck] : null;
+  const [petState, setPetState] = useState("stand"); // stand|sit|belly|yawn|spin|shake
+  const [pettedZone, setPettedZone] = useState(null);
+  const [floaters, setFloaters] = useState([]);
+  const [reaction, setReaction] = useState(""); // text reaction above dog
 
-  // Animation states
-  const [petAnim, setPetAnim] = useState(false);
-  const [happyFace, setHappyFace] = useState(false); // squint eyes + tongue
-  const [eatAnim, setEatAnim] = useState(false);
-  const [floatingItems, setFloatingItems] = useState([]); // hearts + stars
-
-  const spawnFloaters = () => {
-    const items = [
-      { id: Date.now(), type: "heart", x: 50, y: -10 },
-      { id: Date.now() + 1, type: "star", x: 20, y: -20, tx: -25, ty: -40 },
-      { id: Date.now() + 2, type: "star", x: 80, y: -20, tx: 25, ty: -40 },
-      { id: Date.now() + 3, type: "star", x: 35, y: -5, tx: -15, ty: -55 },
-      { id: Date.now() + 4, type: "star", x: 65, y: -5, tx: 15, ty: -55 },
-    ];
-    setFloatingItems(items);
-    setTimeout(() => setFloatingItems([]), 1000);
+  const triggerFloaters = (emojis) => {
+    const items = emojis.map((e,i) => ({
+      id: Date.now()+i, emoji: e,
+      x: 30 + Math.random()*40,
+      tx: (Math.random()-0.5)*60,
+      ty: -(30+Math.random()*40),
+    }));
+    setFloaters(items);
+    setTimeout(() => setFloaters([]), 1000);
   };
 
-  const handlePetTap = () => {
-    if (isSleeping) return;
+  const showReaction = (text, ms=1500) => {
+    setReaction(text);
+    setTimeout(() => setReaction(""), ms);
+  };
+
+  const handleZone = (zone) => {
+    if (isSleeping && zone !== "belly") return;
+    setPettedZone(zone);
+    setTimeout(() => setPettedZone(null), 1200);
     onPet();
-    // Wiggle animation
-    setPetAnim(true);
-    setTimeout(() => setPetAnim(false), 500);
-    // Happy face
-    setHappyFace(true);
-    setTimeout(() => setHappyFace(false), 1800);
-    // Floating hearts & stars
-    spawnFloaters();
+
+    if (zone === "head") {
+      triggerFloaters(["❤️","⭐","✨","💛"]);
+      showReaction("Good boy! 🥰");
+    } else if (zone === "belly") {
+      if (isSleeping) {
+        showReaction("Still sleeping... 😴");
+        return;
+      }
+      setPetState("belly");
+      setTimeout(() => setPetState(prev => prev==="belly" ? "stand" : prev), 2500);
+      triggerFloaters(["😂","🤣","💖","✨"]);
+      showReaction("hehehe 😂");
+    } else if (zone === "back") {
+      triggerFloaters(["💜","🐾","⭐"]);
+      showReaction("*tail wags faster* 🐾");
+    } else if (zone === "snout") {
+      triggerFloaters(["😤","💨","🌟"]);
+      showReaction("*boop* 🤧");
+    }
   };
 
-  // ── Drag-to-feed ──────────────────────────────────────────────────────────
-  const dragFood = useRef(null);
-
-  const getPoint = (e) => {
-    const t = e.touches ? e.touches[0] : e;
-    return { x: t.clientX, y: t.clientY };
-  };
-
-  const startDragFood = (itemKey) => (e) => {
-    if ((inventory.foods[itemKey] || 0) <= 0) return;
+  const handleSitStand = () => {
     if (isSleeping) return;
+    setPetState(s => s === "sit" ? "stand" : "sit");
+    showReaction(petState === "sit" ? "Standing! 🐾" : "Sitting! 🐕");
+  };
+
+  const handleSpin = () => {
+    if (isSleeping) return;
+    setPetState("spin");
+    triggerFloaters(["🌀","⭐","✨"]);
+    showReaction("Spinning! 🌀");
+    setTimeout(() => setPetState("stand"), 800);
+  };
+
+  const handleYawn = () => {
+    setPetState("yawn");
+    showReaction("*yawn* 😪");
+    setTimeout(() => setPetState("stand"), 1500);
+  };
+
+  // Drag-to-feed
+  const startDragFood = (itemKey) => (e) => {
+    if ((inventory.foods[itemKey]||0) <= 0) return;
     e.preventDefault();
-    const pt = getPoint(e);
+    const getP = ev => {
+      const t = ev.touches ? ev.touches[0] : ev;
+      return { x:t.clientX, y:t.clientY };
+    };
+    const pt = getP(e);
     const ghost = document.createElement("div");
     ghost.textContent = SHOP_FOODS[itemKey].emoji;
-    ghost.style.cssText = `position:fixed;font-size:36px;z-index:9999;pointer-events:none;left:${pt.x - 18}px;top:${pt.y - 18}px;transition:transform .1s;transform:scale(1.2);`;
+    ghost.style.cssText = `position:fixed;font-size:36px;z-index:9999;pointer-events:none;left:${pt.x-18}px;top:${pt.y-18}px;`;
     document.body.appendChild(ghost);
-    dragFood.current = { itemKey, ghostEl: ghost };
 
-    const move = (ev) => {
-      const p = getPoint(ev);
-      ghost.style.left = (p.x - 18) + "px";
-      ghost.style.top = (p.y - 18) + "px";
+    // Find dog mouth position
+    const dogEl = document.querySelector(".beagle-svg");
+
+    const move = ev => {
+      const p = getP(ev);
+      ghost.style.left=(p.x-18)+"px";
+      ghost.style.top=(p.y-18)+"px";
     };
-    const end = (ev) => {
+    const end = ev => {
       const p = ev.changedTouches
-        ? { x: ev.changedTouches[0].clientX, y: ev.changedTouches[0].clientY }
-        : getPoint(ev);
-      const mouth = mouthRef.current;
-      if (mouth) {
-        const rect = mouth.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dist = Math.sqrt((p.x - cx) ** 2 + (p.y - cy) ** 2);
+        ? {x:ev.changedTouches[0].clientX,y:ev.changedTouches[0].clientY}
+        : getP(ev);
+      if (dogEl) {
+        const r = dogEl.getBoundingClientRect();
+        const cx = r.left + r.width*0.5;
+        const cy = r.top + r.height*0.62; // mouth is ~62% down
+        const dist = Math.sqrt((p.x-cx)**2+(p.y-cy)**2);
         if (dist < 70) {
           onFeed(itemKey);
-          setEatAnim(true);
-          setTimeout(() => setEatAnim(false), 500);
+          setPetState("yawn"); // open mouth to eat
+          showReaction(`Yum! ${SHOP_FOODS[itemKey].emoji}`, 1200);
+          triggerFloaters(["😋","❤️","✨"]);
+          setTimeout(() => setPetState("stand"), 1500);
         }
       }
       ghost.remove();
-      dragFood.current = null;
       window.removeEventListener("mousemove", move);
       window.removeEventListener("touchmove", move);
       window.removeEventListener("mouseup", end);
       window.removeEventListener("touchend", end);
     };
     window.addEventListener("mousemove", move);
-    window.addEventListener("touchmove", move, { passive: false });
+    window.addEventListener("touchmove", move, {passive:false});
     window.addEventListener("mouseup", end);
     window.addEventListener("touchend", end);
+  };
+
+  const outfit = {
+    head:  pet.equipped_head  || null,
+    face:  pet.equipped_face  || null,
+    neck:  pet.equipped_neck  || null,
+    body:  pet.equipped_body  || null,
+    back:  pet.equipped_back  || null,
   };
 
   return (
@@ -504,103 +787,77 @@ function PetScreen({ appState, onPet, onFeed, onEquip, onBuy }) {
         <button className="shop-btn" onClick={() => setShowShop(true)}>🛍️ Shop</button>
       </div>
 
-      {/* Hunger / Happiness bars — FIXED layout */}
+      {/* Bars */}
       <div className="pet-bars">
         <div className="pet-bar-wrap">
           <div className="pet-bar-label">🍖 hunger</div>
           <div className="pet-bar-track">
             <div className="pet-bar-fill" style={{
-              width: `${eff.hunger}%`,
-              background: eff.hunger < 30 ? "#f87171" : eff.hunger < 60 ? "#f59e0b" : "#4ade80"
-            }} />
+              width:`${eff.hunger}%`,
+              background: eff.hunger<30?"#f87171":eff.hunger<60?"#f59e0b":"#4ade80"
+            }}/>
           </div>
         </div>
         <div className="pet-bar-wrap">
           <div className="pet-bar-label">💜 happiness</div>
           <div className="pet-bar-track">
             <div className="pet-bar-fill" style={{
-              width: `${eff.happiness}%`,
-              background: eff.happiness < 30 ? "#f87171" : "#d46ef3"
-            }} />
+              width:`${eff.happiness}%`,
+              background: eff.happiness<30?"#f87171":"#d46ef3"
+            }}/>
           </div>
         </div>
       </div>
+
+      {/* Reaction text */}
+      <div className="pet-reaction">{reaction || "\u00a0"}</div>
 
       {/* Dog stage */}
-      <div className="pet-stage" ref={stageRef}>
-        <div
-          className={`dog ${petAnim ? "dog--pet" : ""} ${eatAnim ? "dog--eat" : ""} ${isSleeping ? "dog--sleep" : ""}`}
-          onClick={handlePetTap}
-        >
-          {/* Accessories */}
-          {headItem && <div className="dog-head-item">{headItem.emoji}</div>}
-          {faceItem && <div className="dog-face-item">{faceItem.emoji}</div>}
-          {neckItem && <div className="dog-neck-item">{neckItem.emoji}</div>}
-
-          {/* Floating hearts & stars on pet */}
-          {floatingItems.map((item) =>
-            item.type === "heart" ? (
-              <div key={item.id} className="dog-heart" style={{ left: `${item.x}%`, top: `${item.y}px` }}>❤️</div>
-            ) : (
-              <div key={item.id} className="dog-star" style={{ left: `${item.x}%`, top: `${item.y}px`, "--tx": `${item.tx}px`, "--ty": `${item.ty}px` }}>⭐</div>
-            )
-          )}
-
-          {isSleeping && <div className="dog-zzz">💤</div>}
-
-          {/* Ears */}
-          <div className="dog-ear dog-ear--left" />
-          <div className="dog-ear dog-ear--right" />
-
-          {/* Body */}
-          <div className="dog-body" />
-
-          {/* Eyes */}
-          {!isSleeping ? (
-            <>
-              <div className={`dog-eye dog-eye--left ${happyFace ? "dog-eye--happy" : ""}`}>
-                {!happyFace && <div className="dog-eye-shine" />}
-              </div>
-              <div className={`dog-eye dog-eye--right ${happyFace ? "dog-eye--happy" : ""}`}>
-                {!happyFace && <div className="dog-eye-shine" />}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="dog-eye-closed dog-eye-closed--left" />
-              <div className="dog-eye-closed dog-eye-closed--right" />
-            </>
-          )}
-
-          {/* Nose */}
-          <div className="dog-nose" />
-
-          {/* Mouth + tongue */}
-          <div ref={mouthRef} className={`dog-mouth ${happyFace || eatAnim ? "dog-mouth--happy" : ""}`}>
-            <div className="dog-tongue" />
+      <div className="pet-stage" style={{position:"relative"}}>
+        {/* Floating emojis */}
+        {floaters.map(f => (
+          <div key={f.id} className="pet-floater"
+            style={{left:`${f.x}%`, "--tx":`${f.tx}px`, "--ty":`${f.ty}px`}}>
+            {f.emoji}
           </div>
-        </div>
+        ))}
+        {isSleeping && <div className="dog-zzz">💤</div>}
+
+        <BeagleSVG
+          state={isSleeping ? "belly" : petState}
+          outfit={outfit}
+          onZoneClick={handleZone}
+          petted={pettedZone}
+        />
       </div>
 
+      {/* Gesture hint */}
       <p className="pet-hint">
         {isSleeping
-          ? "Asleep 😴 — drag food to mouth to wake up"
-          : happyFace
-          ? "So happy! 🥰"
-          : "Tap to pet · drag food to mouth"}
+          ? "Asleep 😴 — drag food to wake up"
+          : "Tap head · belly · snout · back for different reactions"}
       </p>
+
+      {/* Action buttons */}
+      {!isSleeping && (
+        <div className="pet-actions">
+          <button className="pet-action-btn" onClick={handleSitStand}>
+            {petState==="sit" ? "🐕 Stand" : "🐾 Sit"}
+          </button>
+          <button className="pet-action-btn" onClick={handleSpin}>🌀 Spin</button>
+          <button className="pet-action-btn" onClick={handleYawn}>😪 Yawn</button>
+        </div>
+      )}
 
       {/* Food tray */}
       <div className="food-tray">
-        {Object.entries(SHOP_FOODS).map(([key, food]) => {
-          const count = inventory.foods[key] || 0;
+        {Object.entries(SHOP_FOODS).map(([key,food]) => {
+          const count = inventory.foods[key]||0;
           return (
-            <div key={key} className={`food-item ${count === 0 ? "food-item--empty" : ""}`}>
-              <div
-                className="food-emoji"
-                onMouseDown={count > 0 ? startDragFood(key) : undefined}
-                onTouchStart={count > 0 ? startDragFood(key) : undefined}
-              >
+            <div key={key} className={`food-item ${count===0?"food-item--empty":""}`}>
+              <div className="food-emoji"
+                onMouseDown={count>0 ? startDragFood(key) : undefined}
+                onTouchStart={count>0 ? startDragFood(key) : undefined}>
                 {food.emoji}
               </div>
               <span className="food-count">x{count}</span>
@@ -611,11 +868,8 @@ function PetScreen({ appState, onPet, onFeed, onEquip, onBuy }) {
 
       {showShop && (
         <PetShopModal
-          coins={coins}
-          inventory={inventory}
-          pet={pet}
-          onBuy={onBuy}
-          onEquip={onEquip}
+          coins={coins} inventory={inventory} pet={pet}
+          onBuy={onBuy} onEquip={onEquip}
           onClose={() => setShowShop(false)}
         />
       )}
@@ -626,65 +880,75 @@ function PetScreen({ appState, onPet, onFeed, onEquip, onBuy }) {
 
 // ─── Pet Shop Modal ───────────────────────────────────────────────────────────
 function PetShopModal({ coins, inventory, pet, onBuy, onEquip, onClose }) {
-  const [section, setSection] = useState("food"); // "food" | "outfits"
+  const [section, setSection] = useState("food");
+
+  const slots = ["head","face","neck","body","back"];
+  const slotLabels = { head:"🎩 Head", face:"🕶️ Face", neck:"🧣 Neck", body:"👕 Body", back:"🎒 Back" };
 
   return (
     <div className="compliment-overlay" onClick={onClose}>
-      <div className="shop-card" onClick={(e) => e.stopPropagation()}>
+      <div className="shop-card" onClick={e => e.stopPropagation()}>
         <div className="shop-header">
           <p className="shop-title">🛍️ Pet Shop</p>
           <div className="coin-badge">🪙 {coins}</div>
         </div>
 
-        <div className="board-toggle">
-          <button className={`board-toggle-btn ${section === "food" ? "board-toggle-btn--active" : ""}`} onClick={() => setSection("food")}>🍖 Food</button>
-          <button className={`board-toggle-btn ${section === "outfits" ? "board-toggle-btn--active" : ""}`} onClick={() => setSection("outfits")}>👑 Outfits</button>
+        {/* Section tabs */}
+        <div className="shop-tabs">
+          <button className={`shop-tab ${section==="food"?"shop-tab--active":""}`} onClick={()=>setSection("food")}>🍖 Food</button>
+          {slots.map(s => (
+            <button key={s} className={`shop-tab ${section===s?"shop-tab--active":""}`} onClick={()=>setSection(s)}>
+              {slotLabels[s]}
+            </button>
+          ))}
         </div>
 
         <div className="shop-list">
-          {section === "food" && Object.entries(SHOP_FOODS).map(([key, food]) => {
-            const owned = inventory.foods[key] || 0;
+          {section === "food" && Object.entries(SHOP_FOODS).map(([key,food]) => {
+            const owned = inventory.foods[key]||0;
             const canAfford = coins >= food.cost;
             return (
               <div key={key} className="shop-item">
                 <div className="shop-item-emoji">{food.emoji}</div>
                 <div className="shop-item-info">
                   <p className="shop-item-name">{food.name}</p>
-                  <p className="shop-item-effect">+{food.hunger} hunger{food.happiness > 0 ? `, +${food.happiness} happiness` : ""}</p>
-                  {owned > 0 && <p className="shop-item-owned">You have: {owned}</p>}
+                  <p className="shop-item-effect">+{food.hunger} hunger{food.happiness>0?`, +${food.happiness} happy`:""}</p>
+                  {owned>0 && <p className="shop-item-owned">Owned: {owned}</p>}
                 </div>
-                <button className="shop-buy-btn" disabled={!canAfford} onClick={() => onBuy("food", key)}>
+                <button className="shop-buy-btn" disabled={!canAfford} onClick={()=>onBuy("food",key)}>
                   🪙 {food.cost}
                 </button>
               </div>
             );
           })}
 
-          {section === "outfits" && Object.entries(SHOP_OUTFITS).map(([key, item]) => {
-            const owned = inventory.outfits.includes(key);
-            const canAfford = coins >= item.cost;
-            const isEquipped = pet[`equipped_${item.slot}`] === key;
-            return (
-              <div key={key} className="shop-item">
-                <div className="shop-item-emoji">{item.emoji}</div>
-                <div className="shop-item-info">
-                  <p className="shop-item-name">{item.name}</p>
-                  <p className="shop-item-effect">{item.slot} slot</p>
+          {slots.includes(section) && Object.entries(OUTFITS)
+            .filter(([,item]) => item.slot === section)
+            .map(([key,item]) => {
+              const owned = inventory.outfits.includes(key);
+              const canAfford = coins >= item.cost;
+              const isEquipped = pet[`equipped_${section}`] === key;
+              return (
+                <div key={key} className="shop-item">
+                  <div className="shop-item-emoji">{item.emoji}</div>
+                  <div className="shop-item-info">
+                    <p className="shop-item-name">{item.name}</p>
+                    <p className="shop-item-effect">{slotLabels[section]} slot</p>
+                  </div>
+                  {owned ? (
+                    <button
+                      className={`shop-equip-btn ${isEquipped?"shop-equip-btn--active":""}`}
+                      onClick={()=>onEquip(section, isEquipped ? null : key)}
+                    >
+                      {isEquipped ? "On ✓" : "Equip"}
+                    </button>
+                  ) : (
+                    <button className="shop-buy-btn" disabled={!canAfford} onClick={()=>onBuy("outfit",key)}>
+                      🪙 {item.cost}
+                    </button>
+                  )}
                 </div>
-                {owned ? (
-                  <button
-                    className={`shop-equip-btn ${isEquipped ? "shop-equip-btn--active" : ""}`}
-                    onClick={() => onEquip(item.slot, isEquipped ? null : key)}
-                  >
-                    {isEquipped ? "Equipped ✓" : "Equip"}
-                  </button>
-                ) : (
-                  <button className="shop-buy-btn" disabled={!canAfford} onClick={() => onBuy("outfit", key)}>
-                    🪙 {item.cost}
-                  </button>
-                )}
-              </div>
-            );
+              );
           })}
         </div>
 
