@@ -389,14 +389,18 @@ function PlaylistScreen({ myId, playlist, onAddSong, onDeleteSong }) {
 function PetScreen({ appState, onPet, onFeed, onEquip, onBuy }) {
   const [showShop, setShowShop] = useState(false);
   const [, forceTick] = useState(0);
-  const dogRef = useRef(null);
   const mouthRef = useRef(null);
+  const stageRef = useRef(null);
 
   const coins = appState?.coins || 0;
-  const pet = appState?.pet || { hunger: 70, happiness: 70, stats_updated_at: new Date().toISOString(), equipped_head: null, equipped_face: null, equipped_neck: null };
+  const pet = appState?.pet || {
+    hunger: 70, happiness: 70,
+    stats_updated_at: new Date().toISOString(),
+    equipped_head: null, equipped_face: null, equipped_neck: null,
+  };
   const inventory = appState?.inventory || { foods: {}, outfits: [] };
 
-  // Re-render every 30s so hunger/happiness bars visually decay over time
+  // Re-render every 30s so bars visually decay
   useEffect(() => {
     const id = setInterval(() => forceTick((t) => t + 1), 30_000);
     return () => clearInterval(id);
@@ -409,21 +413,39 @@ function PetScreen({ appState, onPet, onFeed, onEquip, onBuy }) {
   const faceItem = pet.equipped_face ? SHOP_OUTFITS[pet.equipped_face] : null;
   const neckItem = pet.equipped_neck ? SHOP_OUTFITS[pet.equipped_neck] : null;
 
+  // Animation states
   const [petAnim, setPetAnim] = useState(false);
-  const [heartShow, setHeartShow] = useState(false);
+  const [happyFace, setHappyFace] = useState(false); // squint eyes + tongue
   const [eatAnim, setEatAnim] = useState(false);
+  const [floatingItems, setFloatingItems] = useState([]); // hearts + stars
+
+  const spawnFloaters = () => {
+    const items = [
+      { id: Date.now(), type: "heart", x: 50, y: -10 },
+      { id: Date.now() + 1, type: "star", x: 20, y: -20, tx: -25, ty: -40 },
+      { id: Date.now() + 2, type: "star", x: 80, y: -20, tx: 25, ty: -40 },
+      { id: Date.now() + 3, type: "star", x: 35, y: -5, tx: -15, ty: -55 },
+      { id: Date.now() + 4, type: "star", x: 65, y: -5, tx: 15, ty: -55 },
+    ];
+    setFloatingItems(items);
+    setTimeout(() => setFloatingItems([]), 1000);
+  };
 
   const handlePetTap = () => {
     if (isSleeping) return;
     onPet();
+    // Wiggle animation
     setPetAnim(true);
-    setHeartShow(true);
-    setTimeout(() => setPetAnim(false), 400);
-    setTimeout(() => setHeartShow(false), 800);
+    setTimeout(() => setPetAnim(false), 500);
+    // Happy face
+    setHappyFace(true);
+    setTimeout(() => setHappyFace(false), 1800);
+    // Floating hearts & stars
+    spawnFloaters();
   };
 
-  // ── Drag-to-feed ───────────────────────────────────────────────────────────
-  const dragFood = useRef(null); // { itemKey, ghostEl }
+  // ── Drag-to-feed ──────────────────────────────────────────────────────────
+  const dragFood = useRef(null);
 
   const getPoint = (e) => {
     const t = e.touches ? e.touches[0] : e;
@@ -437,32 +459,29 @@ function PetScreen({ appState, onPet, onFeed, onEquip, onBuy }) {
     const pt = getPoint(e);
     const ghost = document.createElement("div");
     ghost.textContent = SHOP_FOODS[itemKey].emoji;
-    ghost.style.position = "fixed";
-    ghost.style.fontSize = "30px";
-    ghost.style.zIndex = "9999";
-    ghost.style.pointerEvents = "none";
-    ghost.style.left = (pt.x - 15) + "px";
-    ghost.style.top = (pt.y - 15) + "px";
+    ghost.style.cssText = `position:fixed;font-size:36px;z-index:9999;pointer-events:none;left:${pt.x - 18}px;top:${pt.y - 18}px;transition:transform .1s;transform:scale(1.2);`;
     document.body.appendChild(ghost);
     dragFood.current = { itemKey, ghostEl: ghost };
 
     const move = (ev) => {
       const p = getPoint(ev);
-      ghost.style.left = (p.x - 15) + "px";
-      ghost.style.top = (p.y - 15) + "px";
+      ghost.style.left = (p.x - 18) + "px";
+      ghost.style.top = (p.y - 18) + "px";
     };
     const end = (ev) => {
-      const p = ev.changedTouches ? { x: ev.changedTouches[0].clientX, y: ev.changedTouches[0].clientY } : getPoint(ev);
+      const p = ev.changedTouches
+        ? { x: ev.changedTouches[0].clientX, y: ev.changedTouches[0].clientY }
+        : getPoint(ev);
       const mouth = mouthRef.current;
       if (mouth) {
         const rect = mouth.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
         const dist = Math.sqrt((p.x - cx) ** 2 + (p.y - cy) ** 2);
-        if (dist < 60) {
+        if (dist < 70) {
           onFeed(itemKey);
           setEatAnim(true);
-          setTimeout(() => setEatAnim(false), 400);
+          setTimeout(() => setEatAnim(false), 500);
         }
       }
       ghost.remove();
@@ -485,35 +504,66 @@ function PetScreen({ appState, onPet, onFeed, onEquip, onBuy }) {
         <button className="shop-btn" onClick={() => setShowShop(true)}>🛍️ Shop</button>
       </div>
 
+      {/* Hunger / Happiness bars — FIXED layout */}
       <div className="pet-bars">
         <div className="pet-bar-wrap">
-          <div className="pet-bar-label">hunger</div>
-          <div className="pet-bar-track"><div className="pet-bar-fill" style={{ width: `${eff.hunger}%`, background: eff.hunger < 30 ? "#f87171" : "#f59e0b" }} /></div>
+          <div className="pet-bar-label">🍖 hunger</div>
+          <div className="pet-bar-track">
+            <div className="pet-bar-fill" style={{
+              width: `${eff.hunger}%`,
+              background: eff.hunger < 30 ? "#f87171" : eff.hunger < 60 ? "#f59e0b" : "#4ade80"
+            }} />
+          </div>
         </div>
         <div className="pet-bar-wrap">
-          <div className="pet-bar-label">happiness</div>
-          <div className="pet-bar-track"><div className="pet-bar-fill" style={{ width: `${eff.happiness}%`, background: "#d46ef3" }} /></div>
+          <div className="pet-bar-label">💜 happiness</div>
+          <div className="pet-bar-track">
+            <div className="pet-bar-fill" style={{
+              width: `${eff.happiness}%`,
+              background: eff.happiness < 30 ? "#f87171" : "#d46ef3"
+            }} />
+          </div>
         </div>
       </div>
 
-      <div className="pet-stage">
+      {/* Dog stage */}
+      <div className="pet-stage" ref={stageRef}>
         <div
-          ref={dogRef}
           className={`dog ${petAnim ? "dog--pet" : ""} ${eatAnim ? "dog--eat" : ""} ${isSleeping ? "dog--sleep" : ""}`}
           onClick={handlePetTap}
         >
+          {/* Accessories */}
           {headItem && <div className="dog-head-item">{headItem.emoji}</div>}
           {faceItem && <div className="dog-face-item">{faceItem.emoji}</div>}
           {neckItem && <div className="dog-neck-item">{neckItem.emoji}</div>}
-          {heartShow && <div className="dog-heart">❤️</div>}
+
+          {/* Floating hearts & stars on pet */}
+          {floatingItems.map((item) =>
+            item.type === "heart" ? (
+              <div key={item.id} className="dog-heart" style={{ left: `${item.x}%`, top: `${item.y}px` }}>❤️</div>
+            ) : (
+              <div key={item.id} className="dog-star" style={{ left: `${item.x}%`, top: `${item.y}px`, "--tx": `${item.tx}px`, "--ty": `${item.ty}px` }}>⭐</div>
+            )
+          )}
+
           {isSleeping && <div className="dog-zzz">💤</div>}
+
+          {/* Ears */}
           <div className="dog-ear dog-ear--left" />
           <div className="dog-ear dog-ear--right" />
+
+          {/* Body */}
           <div className="dog-body" />
+
+          {/* Eyes */}
           {!isSleeping ? (
             <>
-              <div className="dog-eye dog-eye--left"><div className="dog-eye-shine" /></div>
-              <div className="dog-eye dog-eye--right"><div className="dog-eye-shine" /></div>
+              <div className={`dog-eye dog-eye--left ${happyFace ? "dog-eye--happy" : ""}`}>
+                {!happyFace && <div className="dog-eye-shine" />}
+              </div>
+              <div className={`dog-eye dog-eye--right ${happyFace ? "dog-eye--happy" : ""}`}>
+                {!happyFace && <div className="dog-eye-shine" />}
+              </div>
             </>
           ) : (
             <>
@@ -521,13 +571,23 @@ function PetScreen({ appState, onPet, onFeed, onEquip, onBuy }) {
               <div className="dog-eye-closed dog-eye-closed--right" />
             </>
           )}
+
+          {/* Nose */}
           <div className="dog-nose" />
-          <div ref={mouthRef} className="dog-mouth" />
+
+          {/* Mouth + tongue */}
+          <div ref={mouthRef} className={`dog-mouth ${happyFace || eatAnim ? "dog-mouth--happy" : ""}`}>
+            <div className="dog-tongue" />
+          </div>
         </div>
       </div>
 
       <p className="pet-hint">
-        {isSleeping ? "Asleep — feed to wake up 🍖" : "Tap to pet · drag food to mouth"}
+        {isSleeping
+          ? "Asleep 😴 — drag food to mouth to wake up"
+          : happyFace
+          ? "So happy! 🥰"
+          : "Tap to pet · drag food to mouth"}
       </p>
 
       {/* Food tray */}
@@ -562,6 +622,7 @@ function PetScreen({ appState, onPet, onFeed, onEquip, onBuy }) {
     </div>
   );
 }
+
 
 // ─── Pet Shop Modal ───────────────────────────────────────────────────────────
 function PetShopModal({ coins, inventory, pet, onBuy, onEquip, onClose }) {
